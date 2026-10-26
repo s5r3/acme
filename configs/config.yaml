@@ -1,0 +1,45 @@
+# Defaults for every binary. Committed; contains no production secrets.
+# Override per developer in configs/config.local.yaml (git-ignored) and per
+# environment with ACME_* env vars, e.g. ACME_DATABASE_DSN, ACME_AUTH_JWT_SECRET.
+
+app:
+  name: acme
+  env: development            # development | test | production
+
+api:                          # cmd/api
+  address: ":8080"
+  shutdown_timeout: 15s
+  request_timeout: 30s
+  body_limit_bytes: 1048576   # 1 MiB
+  cors_origins: []            # e.g. ["https://app.example.com"]
+
+web:                          # cmd/web
+  address: ":8081"
+  shutdown_timeout: 15s
+  request_timeout: 30s
+  body_limit_bytes: 1048576
+  session_ttl: 12h
+  cookie_secure: false        # true behind HTTPS (always in production)
+
+database:
+  dsn: "postgres://acme:acme@localhost:5432/acme?sslmode=disable"
+  max_open_conns: 20
+  max_idle_conns: 5
+  conn_max_lifetime: 30m
+  slow_query_threshold: 200ms
+
+log:
+  level: info                 # debug | info | warn | error
+  stdout: true
+  file:
+    path: ""                  # e.g. /var/log/acme/api.log; empty disables lumberjack
+    max_size_mb: 100
+    max_backups: 10
+    max_age_days: 30
+    compress: true
+
+auth:
+  # Development only. Set ACME_AUTH_JWT_SECRET (32+ chars) everywhere else.
+  jwt_secret: "dev-only-secret-change-me-0123456789abcdef"
+  issuer: acme
+  token_ttl: 1h

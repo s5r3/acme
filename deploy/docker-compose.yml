@@ -1,0 +1,49 @@
+# Local stack: PostgreSQL, a one-off migration job, then the two binaries.
+#   make up      (or: docker compose -f deploy/docker-compose.yml up --build)
+#   make db-up   (PostgreSQL only, for running the binaries with `go run`)
+
+x-app-env: &app-env
+  ACME_DATABASE_DSN: postgres://acme:acme@db:5432/acme?sslmode=disable
+  ACME_AUTH_JWT_SECRET: compose-dev-secret-0123456789abcdef0123
+  ACME_LOG_LEVEL: info
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: acme
+      POSTGRES_PASSWORD: acme
+      POSTGRES_DB: acme
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acme -d acme"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: { context: .., dockerfile: deploy/Dockerfile, target: migrate }
+    environment: *app-env
+    command: ["up"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build: { context: .., dockerfile: deploy/Dockerfile, target: api }
+    environment: *app-env
+    ports: ["8080:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: .., dockerfile: deploy/Dockerfile, target: web }
+    environment: *app-env
+    ports: ["8081:8081"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  pgdata:

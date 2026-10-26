@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: Acme API
+  version: 1.0.0
+  description: |
+    Sample API following the Go project convention. Every route has an
+    operationId "<feature>.<Handler>" and the permission it needs in
+    x-permission. CI checks this file against the registered routes.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: user
+  - name: order
+
+paths:
+  /api/v1/auth/token:
+    $ref: './paths/user.yaml#/authToken'
+  /api/v1/users:
+    $ref: './paths/user.yaml#/users'
+  /api/v1/users/me:
+    $ref: './paths/user.yaml#/me'
+  /api/v1/users/{userID}:
+    $ref: './paths/user.yaml#/user'
+  /api/v1/orders:
+    $ref: './paths/order.yaml#/orders'
+  /api/v1/orders/{orderID}:
+    $ref: './paths/order.yaml#/order'
+  /api/v1/orders/{orderID}/cancel:
+    $ref: './paths/order.yaml#/cancel'
+  /api/v1/orders/{orderID}/items:
+    $ref: './paths/order.yaml#/items'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

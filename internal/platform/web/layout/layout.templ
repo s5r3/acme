@@ -1,0 +1,77 @@
+package layout
+
+import "strconv"
+
+// Base wraps every page: head, top bar, flash message and main content.
+templ Base(title string) {
+	{{ p := PageFrom(ctx) }}
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title } · Acme</title>
+			<link rel="stylesheet" href="/static/app.css"/>
+		</head>
+		<body>
+			<header class="topbar">
+				<a class="brand" href="/">Acme Orders</a>
+				<nav>
+					if p.User != nil {
+						<a href="/orders">Orders</a>
+						<span class="who">
+							{ p.User.Name }
+							if p.User.HasRole("admin") {
+								<span class="badge">admin</span>
+							}
+						</span>
+						<form method="post" action="/logout" class="inline">
+							@CSRFField()
+							<button type="submit" class="link">Log out</button>
+						</form>
+					} else {
+						<a href="/login">Log in</a>
+						<a href="/signup">Sign up</a>
+					}
+				</nav>
+			</header>
+			<main class="container">
+				if p.Flash != nil {
+					<div class={ "flash", "flash-" + p.Flash.Kind } role="status">{ p.Flash.Message }</div>
+				}
+				{ children... }
+			</main>
+		</body>
+	</html>
+}
+
+// CSRFField is placed inside every POST form.
+templ CSRFField() {
+	<input type="hidden" name="_csrf" value={ PageFrom(ctx).CSRFToken }/>
+}
+
+// FieldError shows the validation message for one form field, if any.
+templ FieldError(errs map[string]string, field string) {
+	if msg, ok := errs[field]; ok {
+		<p class="field-error">{ msg }</p>
+	}
+}
+
+// FormError shows a form-level error (e.g. a business rule failure).
+templ FormError(msg string) {
+	if msg != "" {
+		<div class="flash flash-error" role="alert">{ msg }</div>
+	}
+}
+
+// ErrorPage is rendered by the web error handler.
+templ ErrorPage(status int, title, message string) {
+	@Base(title) {
+		<section class="card narrow">
+			<p class="muted">Error { strconv.Itoa(status) }</p>
+			<h1>{ title }</h1>
+			<p>{ message }</p>
+			<p><a href="/">Back to start</a></p>
+		</section>
+	}
+}

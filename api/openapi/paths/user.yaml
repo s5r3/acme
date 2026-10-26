@@ -1,0 +1,92 @@
+authToken:
+  post:
+    operationId: user.IssueToken
+    tags: [user]
+    summary: Exchange email and password for a bearer token
+    security: []
+    x-permission: public
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/user.yaml#/TokenRequest' }
+    responses:
+      '200':
+        description: Token issued
+        content:
+          application/json:
+            schema: { $ref: '../schemas/user.yaml#/TokenResponse' }
+      '400': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+users:
+  post:
+    operationId: user.Create
+    tags: [user]
+    summary: Sign up (creates a customer account)
+    security: []
+    x-permission: public
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/user.yaml#/CreateUserRequest' }
+    responses:
+      '201':
+        description: Created
+        content:
+          application/json:
+            schema: { $ref: '../schemas/user.yaml#/UserResponse' }
+      '400': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '409': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+  get:
+    operationId: user.List
+    tags: [user]
+    summary: List users
+    x-permission: user:read
+    parameters:
+      - $ref: '../schemas/common.yaml#/Page'
+      - $ref: '../schemas/common.yaml#/PageSize'
+    responses:
+      '200':
+        description: A page of users
+        content:
+          application/json:
+            schema: { $ref: '../schemas/user.yaml#/UserList' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '403': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+me:
+  get:
+    operationId: user.Me
+    tags: [user]
+    summary: The authenticated user
+    x-permission: authenticated
+    responses:
+      '200':
+        description: The caller
+        content:
+          application/json:
+            schema: { $ref: '../schemas/user.yaml#/UserResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+user:
+  parameters:
+    - name: userID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  get:
+    operationId: user.Get
+    tags: [user]
+    summary: Get a user
+    x-permission: user:read
+    responses:
+      '200':
+        description: The user
+        content:
+          application/json:
+            schema: { $ref: '../schemas/user.yaml#/UserResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '403': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '404': { $ref: '../schemas/common.yaml#/ProblemResponse' }

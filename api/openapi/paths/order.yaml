@@ -1,0 +1,130 @@
+orders:
+  get:
+    operationId: order.List
+    tags: [order]
+    summary: List orders (own orders; all orders for admins)
+    x-permission: order:read
+    parameters:
+      - name: status
+        in: query
+        schema: { type: string, enum: [open, cancelled] }
+      - name: customerId
+        in: query
+        description: Admins only.
+        schema: { type: string, format: uuid }
+      - $ref: '../schemas/common.yaml#/Page'
+      - $ref: '../schemas/common.yaml#/PageSize'
+    responses:
+      '200':
+        description: A page of orders
+        content:
+          application/json:
+            schema: { $ref: '../schemas/order.yaml#/OrderList' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+  post:
+    operationId: order.Create
+    tags: [order]
+    summary: Place an order
+    x-permission: order:write
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/order.yaml#/CreateOrderRequest' }
+    responses:
+      '201':
+        description: Created
+        headers:
+          Location: { schema: { type: string } }
+        content:
+          application/json:
+            schema: { $ref: '../schemas/order.yaml#/OrderResponse' }
+      '400': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '403': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '422': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+order:
+  parameters:
+    - $ref: '#/components/orderID'
+  get:
+    operationId: order.Get
+    tags: [order]
+    summary: Get an order with its items
+    x-permission: order:read
+    responses:
+      '200':
+        description: The order
+        content:
+          application/json:
+            schema: { $ref: '../schemas/order.yaml#/OrderResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '404': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+cancel:
+  parameters:
+    - $ref: '#/components/orderID'
+  post:
+    operationId: order.Cancel
+    tags: [order]
+    summary: Cancel an open order
+    x-permission: order:write
+    responses:
+      '200':
+        description: The cancelled order
+        content:
+          application/json:
+            schema: { $ref: '../schemas/order.yaml#/OrderResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '404': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '422': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+items:
+  parameters:
+    - $ref: '#/components/orderID'
+  get:
+    operationId: order.ListItems
+    tags: [order]
+    summary: List an order's items
+    x-permission: order:read
+    responses:
+      '200':
+        description: The items
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: { $ref: '../schemas/order.yaml#/OrderItemResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '404': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+  post:
+    operationId: order.AddItem
+    tags: [order]
+    summary: Add an item to an open order
+    x-permission: order:write
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/order.yaml#/OrderItemRequest' }
+    responses:
+      '201':
+        description: The new item
+        content:
+          application/json:
+            schema: { $ref: '../schemas/order.yaml#/OrderItemResponse' }
+      '400': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '401': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '404': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+      '422': { $ref: '../schemas/common.yaml#/ProblemResponse' }
+
+components:
+  orderID:
+    name: orderID
+    in: path
+    required: true
+    schema: { type: string, format: uuid }

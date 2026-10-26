@@ -1,0 +1,64 @@
+// Package views renders the user feature's pages. It receives view models
+// only and never imports the user package (avoids an import cycle with the
+// handlers and keeps entities out of templates).
+package views
+
+import "example.com/acme/internal/platform/web/layout"
+
+type LoginForm struct {
+	Email string
+	Next  string
+}
+
+type SignupForm struct {
+	Email string
+	Name  string
+}
+
+templ Login(f LoginForm, errs map[string]string, formErr string) {
+	@layout.Base("Log in") {
+		<section class="card narrow">
+			<h1>Log in</h1>
+			@layout.FormError(formErr)
+			<form method="post" action="/login" novalidate>
+				@layout.CSRFField()
+				<input type="hidden" name="next" value={ f.Next }/>
+				<label for="email">Email</label>
+				<input id="email" name="email" type="email" value={ f.Email } autocomplete="username" required/>
+				@layout.FieldError(errs, "email")
+				<label for="password">Password</label>
+				<input id="password" name="password" type="password" autocomplete="current-password" required/>
+				@layout.FieldError(errs, "password")
+				<div class="actions">
+					<button type="submit">Log in</button>
+					<a href="/signup">Create an account</a>
+				</div>
+			</form>
+		</section>
+	}
+}
+
+templ Signup(f SignupForm, errs map[string]string, formErr string) {
+	@layout.Base("Sign up") {
+		<section class="card narrow">
+			<h1>Create an account</h1>
+			@layout.FormError(formErr)
+			<form method="post" action="/signup" novalidate>
+				@layout.CSRFField()
+				<label for="name">Name</label>
+				<input id="name" name="name" value={ f.Name } autocomplete="name" required/>
+				@layout.FieldError(errs, "name")
+				<label for="email">Email</label>
+				<input id="email" name="email" type="email" value={ f.Email } autocomplete="email" required/>
+				@layout.FieldError(errs, "email")
+				<label for="password">Password</label>
+				<input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required/>
+				@layout.FieldError(errs, "password")
+				<div class="actions">
+					<button type="submit">Sign up</button>
+					<a href="/login">I already have an account</a>
+				</div>
+			</form>
+		</section>
+	}
+}

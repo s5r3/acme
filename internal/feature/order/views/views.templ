@@ -1,0 +1,165 @@
+package views
+
+import (
+	"strconv"
+
+	"example.com/acme/internal/platform/web/layout"
+)
+
+templ List(vm OrderList) {
+	@layout.Base("Orders") {
+		<div class="row">
+			<h1>
+				if vm.ShowCustomer {
+					All orders
+				} else {
+					Your orders
+				}
+			</h1>
+			<a class="button" href="/orders/new">New order</a>
+		</div>
+		<p class="muted">
+			Filter:
+			<a href="/orders">all</a> ·
+			<a href="/orders?status=open">open</a> ·
+			<a href="/orders?status=cancelled">cancelled</a>
+			<span>({ strconv.FormatInt(vm.Total, 10) } total)</span>
+		</p>
+		if len(vm.Rows) == 0 {
+			<div class="card">No orders yet. <a href="/orders/new">Place your first order</a>.</div>
+		} else {
+			<table>
+				<thead>
+					<tr>
+						<th>Order</th>
+						<th>Placed</th>
+						<th>Status</th>
+						<th class="num">Total</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, r := range vm.Rows {
+						<tr>
+							<td><a href={ templ.SafeURL("/orders/" + r.ID) }>#{ shortID(r.ID) }</a></td>
+							<td>{ r.CreatedAt.Format("2006-01-02 15:04") }</td>
+							<td><span class={ "status", "status-" + r.Status }>{ r.Status }</span></td>
+							<td class="num">{ Money(r.TotalCents) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			if vm.TotalPages > 1 {
+				<nav class="pager">
+					if vm.Page > 1 {
+						<a href={ templ.SafeURL(pageURL(vm.Status, vm.Page-1)) }>← Newer</a>
+					}
+					<span class="muted">Page { strconv.Itoa(vm.Page) } of { strconv.Itoa(vm.TotalPages) }</span>
+					if vm.Page < vm.TotalPages {
+						<a href={ templ.SafeURL(pageURL(vm.Status, vm.Page+1)) }>Older →</a>
+					}
+				</nav>
+			}
+		}
+	}
+}
+
+templ Show(d OrderDetail) {
+	@layout.Base("Order #" + shortID(d.ID)) {
+		<div class="row">
+			<h1>Order #{ shortID(d.ID) }</h1>
+			<span class={ "status", "status-" + d.Status }>{ d.Status }</span>
+		</div>
+		<p class="muted">Placed { d.CreatedAt.Format("2 Jan 2006 15:04") } UTC · customer { shortID(d.CustomerID) }</p>
+		if d.Note != "" {
+			<p>{ d.Note }</p>
+		}
+		<table>
+			<thead>
+				<tr>
+					<th>SKU</th>
+					<th>Item</th>
+					<th class="num">Qty</th>
+					<th class="num">Unit price</th>
+					<th class="num">Line total</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, it := range d.Items {
+					<tr>
+						<td>{ it.SKU }</td>
+						<td>{ it.Name }</td>
+						<td class="num">{ strconv.Itoa(it.Quantity) }</td>
+						<td class="num">{ Money(it.UnitPriceCents) }</td>
+						<td class="num">{ Money(it.LineTotalCents) }</td>
+					</tr>
+				}
+				<tr>
+					<th colspan="4">Total</th>
+					<th class="num">{ Money(d.TotalCents) }</th>
+				</tr>
+			</tbody>
+		</table>
+		<div class="actions">
+			<a href="/orders">Back to orders</a>
+			if d.CanCancel {
+				<form method="post" action={ templ.SafeURL("/orders/" + d.ID + "/cancel") } class="inline">
+					@layout.CSRFField()
+					<button type="submit" class="secondary">Cancel order</button>
+				</form>
+			}
+		</div>
+	}
+}
+
+templ Form(f NewOrderForm, errs map[string]string, formErr string) {
+	@layout.Base("New order") {
+		<section class="card">
+			<h1>New order</h1>
+			@layout.FormError(formErr)
+			<form method="post" action="/orders" novalidate>
+				@layout.CSRFField()
+				<table class="items">
+					<thead>
+						<tr>
+							<th>SKU</th>
+							<th>Item</th>
+							<th>Qty</th>
+							<th>Unit price</th>
+						</tr>
+					</thead>
+					<tbody>
+						for i, r := range f.Rows {
+							<tr>
+								<td>
+									<input name="sku" value={ r.SKU } aria-label={ "SKU, row " + strconv.Itoa(i+1) }/>
+									@layout.FieldError(errs, fieldKey(i, "sku"))
+								</td>
+								<td>
+									<input name="name" value={ r.Name } aria-label={ "Item name, row " + strconv.Itoa(i+1) }/>
+									@layout.FieldError(errs, fieldKey(i, "name"))
+								</td>
+								<td>
+									<input name="quantity" value={ r.Quantity } inputmode="numeric" aria-label={ "Quantity, row " + strconv.Itoa(i+1) }/>
+									@layout.FieldError(errs, fieldKey(i, "quantity"))
+								</td>
+								<td>
+									<input name="price" value={ r.Price } inputmode="decimal" placeholder="0.00" aria-label={ "Unit price, row " + strconv.Itoa(i+1) }/>
+									@layout.FieldError(errs, fieldKey(i, "price"))
+									@layout.FieldError(errs, fieldKey(i, "unitPriceCents"))
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@layout.FieldError(errs, "items")
+				<label for="note">Note</label>
+				<textarea id="note" name="note" rows="3">{ f.Note }</textarea>
+				@layout.FieldError(errs, "note")
+				<div class="actions">
+					<button type="submit">Place order</button>
+					<a href="/orders">Cancel</a>
+				</div>
+			</form>
+		</section>
+	}
+}

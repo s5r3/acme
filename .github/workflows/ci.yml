@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: acme
+          POSTGRES_PASSWORD: acme
+          POSTGRES_DB: acme_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U acme" --health-interval 2s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Generated templates are up to date
+        run: |
+          go tool templ generate
+          git diff --exit-code -- '*_templ.go'
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+      - name: Unit and integration tests
+        env:
+          ACME_TEST_DATABASE_DSN: postgres://acme:acme@localhost:5432/acme_test?sslmode=disable
+        run: go test -race -count=1 -p 1 -tags=integration ./...
+
+      - name: OpenAPI lint
+        run: npx --yes @redocly/cli@latest lint api/openapi/openapi.yaml
+
+      - name: Build binaries
+        run: CGO_ENABLED=0 go build -trimpath -o bin/ ./cmd/...

@@ -1,0 +1,12 @@
+# Each feature has owners; platform and app changes need a platform owner.
+# Replace the example teams with your own.
+
+/internal/platform/      @acme/platform
+/internal/app/           @acme/platform
+/migrations/             @acme/platform
+/deploy/                 @acme/platform
+
+/internal/feature/user/  @acme/identity
+/internal/feature/order/ @acme/orders
+/api/openapi/paths/order.yaml   @acme/orders
+/api/openapi/paths/user.yaml    @acme/identity

@@ -1,0 +1,80 @@
+version: "2"
+
+run:
+  build-tags: [integration]
+
+linters:
+  enable:
+    - depguard     # import-direction rules below
+    - errorlint
+    - gosec
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - wrapcheck
+  settings:
+    wrapcheck:
+      # Feature and platform errors are already meaningful; don't force wraps
+      # around our own packages or Echo's response helpers.
+      ignore-package-globs:
+        - example.com/acme/*
+        - github.com/labstack/echo/v5
+    depguard:
+      rules:
+        # platform/ is infrastructure: it never depends on features or app.
+        platform:
+          files: ["**/internal/platform/**"]
+          deny:
+            - pkg: example.com/acme/internal/feature
+              desc: platform must not import features
+            - pkg: example.com/acme/internal/app
+              desc: platform must not import the composition root
+        # shared/ is dependency-free helpers.
+        shared:
+          files: ["**/internal/shared/**"]
+          deny:
+            - pkg: example.com/acme/internal/platform
+              desc: shared must not import platform
+            - pkg: example.com/acme/internal/feature
+              desc: shared must not import features
+        # Features never reach into the composition root.
+        features:
+          files: ["**/internal/feature/**"]
+          deny:
+            - pkg: example.com/acme/internal/app
+              desc: features are wired by app, never the reverse
+        # Services are plain Go: no HTTP framework, no ORM.
+        services:
+          files: ["**/internal/feature/**/service.go"]
+          deny:
+            - pkg: github.com/labstack/echo
+              desc: services must not depend on Echo
+            - pkg: gorm.io/gorm
+              desc: services use the Repository interface, not GORM
+        # Only repositories touch GORM.
+        handlers:
+          files: ["**/internal/feature/**/*handler*.go", "**/internal/feature/**/*routes.go"]
+          deny:
+            - pkg: gorm.io/gorm
+              desc: handlers call services, never the database
+        # Views get view models only.
+        views:
+          files: ["**/internal/feature/**/views/**"]
+          deny:
+            - pkg: gorm.io/gorm
+              desc: views render view models, not entities
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [wrapcheck, gosec, unparam]
+      - path: _templ\.go
+        linters: [revive, unparam, wrapcheck, gosec]
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: [example.com/acme]

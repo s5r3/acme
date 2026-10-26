@@ -1,0 +1,11 @@
+/bin/
+*.log
+coverage.out
+
+# Per-developer config overrides
+configs/*.local.yaml
+
+.env
+.idea/
+.vscode/
+.DS_Store
